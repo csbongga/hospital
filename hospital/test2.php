@@ -4,7 +4,7 @@ include 'conDB.php';
 <?php
 
 
-// Query for number of employees in each department
+// Query for number of employees in each departmentdsfsdfsfs
 $dept_sql = "SELECT department, COUNT(*) as employee_count FROM employee_data GROUP BY department";
 $dept_result = $conn->query($dept_sql);
 
