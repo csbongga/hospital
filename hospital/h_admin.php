@@ -1,11 +1,34 @@
 <?php include "conDB.php" ?>
 <?php
+if ($_GET["department"] == "") {
+    $department = "HA";
+} else {
+    $department = $_GET["department"];
+}
 // Query for number of employees in each department
 $sql22 = "SELECT department, COUNT(DISTINCT employee_name) AS num_unique_employees FROM employee_data GROUP BY department";
 $result = $conn->query($sql22);
 
 //พนักงาน
-$sql_emp_time = "SELECT employee_name, COUNT(date) AS work_days, COUNT(CASE WHEN TIME(in_time) > '08:30:00' THEN 1 END) AS late_days, TIME_FORMAT(SEC_TO_TIME(SUM(CASE WHEN TIME(in_time) > '08:30:00' THEN TIME_TO_SEC(TIMEDIFF(in_time, '08:30:00')) ELSE 0 END)), '%H:%i') AS total_late_time FROM employee_data WHERE status = 'วันทำงาน' AND MONTH(date) = 2 AND YEAR(date) = YEAR(CURDATE()) AND department LIKE '".$_GET['department']."' GROUP BY employee_name ORDER BY `employee_data`.`employee_name` DESC";
+//$sql_emp_time = "SELECT employee_name, COUNT(date) AS work_days, 
+//COUNT(CASE WHEN TIME(in_time) > '08:30:00' THEN 1 END) AS late_days, 
+//TIME_FORMAT(SEC_TO_TIME(SUM(CASE WHEN TIME(in_time) > '08:30:00' THEN 
+//TIME_TO_SEC(TIMEDIFF(in_time, '08:30:00')) ELSE 0 END)), '%H:%i') AS total_late_time 
+//FROM employee_data 
+//WHERE status = 'วันทำงาน' AND MONTH(date) = 2 AND YEAR(date) = YEAR(CURDATE()) AND department LIKE '%" . $department . "%' GROUP BY employee_name ORDER BY `employee_data`.`employee_name` DESC";
+
+$sql_emp_time = "SELECT 
+            employee_name, 
+            COUNT(CASE WHEN TIME(in_time) IS NOT NULL THEN 1 END) AS work_days,
+            COUNT(CASE WHEN TIME(in_time) > '08:30:00' THEN 1 END) AS late_days,
+            TIME_FORMAT(SEC_TO_TIME(SUM(CASE WHEN TIME(in_time) > '08:30:00' THEN TIME_TO_SEC(TIMEDIFF(in_time, '08:30:00')) ELSE 0 END)), '%H:%i') AS total_late_time
+        FROM 
+            employee_data 
+        WHERE 
+            status = 'วันทำงาน' AND MONTH(date) = 2 AND YEAR(date) = YEAR(CURDATE()) AND `department` LIKE '%$department%'
+        GROUP BY 
+            employee_name  
+ORDER BY `employee_data`.`employee_name` ASC;";
 $result_sql_emp_time = $conn->query($sql_emp_time);
 
 $dept_sql = "SELECT department, COUNT(*) as employee_count FROM employee_data GROUP BY department";
@@ -92,6 +115,13 @@ $conn->close();
     <link href="../src/assets/css/dark/components/list-group.css" rel="stylesheet" type="text/css">
     <link href="../src/assets/css/dark/dashboard/dash_2.css" rel="stylesheet" type="text/css" />
     <!-- END PAGE LEVEL PLUGINS/CUSTOM STYLES -->
+
+    <!-- BEGIN PAGE LEVEL STYLES -->
+    <link rel="stylesheet" type="text/css" href="../src/plugins/src/table/datatable/datatables.css">
+
+    <link rel="stylesheet" type="text/css" href="../src/plugins/css/light/table/datatable/dt-global_style.css">
+    <link rel="stylesheet" type="text/css" href="../src/plugins/css/dark/table/datatable/dt-global_style.css">
+    <!-- END PAGE LEVEL STYLES -->
 </head>
 
 <body class="layout-boxed enable-secondaryNav">
@@ -270,7 +300,7 @@ $conn->close();
 
                                 <div class="widget-content">
                                     <div class="table-responsive">
-                                        <table class="table">
+                                        <table class="table" id="zero-config2" class="table dt-table-hover">
                                             <thead>
                                                 <tr>
                                                     <th>
@@ -311,19 +341,23 @@ $conn->close();
                             <div class="widget widget-table-two">
 
                                 <div class="widget-heading">
-                                    <h5 class="">สรุปการเข้างานของ แผนก <?php echo $_GET["department"]?></h5>
+                                    <h5 class="">สรุปการเข้างานของ แผนก <?php echo $department ?></h5>
                                 </div>
 
                                 <div class="widget-content">
                                     <div class="table-responsive">
-                                        <table class="table">
+                                        <table class="table" id="zero-config" class="table dt-table-hover" style="width:100%">
                                             <thead>
                                                 <tr>
-                                                    <th>
-                                                        <div class="th-content">ลำดับ</div>
-                                                    </th>
+                                                    <!-- <th>
+                                                        <div class=" th-content">ลำดับ
+                                                        </div>
+                                                    </th> -->
                                                     <th>
                                                         <div class="th-content">ชื่อพนักงาน</div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="th-content" style='text-align: center;'>จำนวนวันที่ลงชื่อเข้างาน</div>
                                                     </th>
                                                     <th>
                                                         <div class="th-content" style='text-align: center;'>จำนวนวันที่มาสาย</div>
@@ -348,12 +382,13 @@ $conn->close();
                                                     while ($row = $result_sql_emp_time->fetch_assoc()) {
                                                         echo "<tr>
                                                         
-                                                        <td><div class='td-content' style='text-align: center;'>" . $i . "</div></td>
+                                                        <!--<td><div class='td-content' style='text-align: center;'>" . $i . "</div></td> --!>
                                                         <td><div class='td-content'>" . $row["employee_name"] . "</div></td>
+                                                        <td><div class='td-content' style='text-align: center;'>" . $row["work_days"] . "</div></td>
                                                         <td><div class='td-content' style='text-align: center;'>" . $row["late_days"] . "</div></td>
                                                         <td><div class='td-content' style='text-align: center;'>" . $row["total_late_time"] . "</div></td>
                                                         <td><div class='td-content' style='text-align: center;'>00:00</div></td>
-                                                        <td><div class='td-content' style='text-align: center;'><span class='badge badge-success'>ดู</span></div></td>
+                                                        <td><div class='td-content' style='text-align: center;'><a href='h_report_emp_time_work.php?employee_name=" . $row["employee_name"] . ",department=" . $department . "'><span class='badge badge-success'>ดู</span></a></div></td>
                                                         </tr>";
                                                         $i++;
                                                     }
@@ -919,6 +954,57 @@ $conn->close();
     <script src="../src/plugins/src/apex/apexcharts.min.js"></script>
     <script src="../src/assets/js/dashboard/dash_1.js"></script>
     <!-- BEGIN PAGE LEVEL PLUGINS/CUSTOM SCRIPTS -->
+
+    <!-- BEGIN GLOBAL MANDATORY SCRIPTS -->
+    <script src="../src/plugins/src/global/vendors.min.js"></script>
+    <script src="../src/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="../src/plugins/src/perfect-scrollbar/perfect-scrollbar.min.js"></script>
+    <script src="../src/plugins/src/mousetrap/mousetrap.min.js"></script>
+    <script src="../src/plugins/src/waves/waves.min.js"></script>
+    <script src="../layouts/horizontal-light-menu/app.js"></script>
+    <script src="../src/assets/js/custom.js"></script>
+    <!-- END GLOBAL MANDATORY SCRIPTS -->
+
+    <!-- BEGIN PAGE LEVEL SCRIPTS -->
+    <script src="../src/plugins/src/table/datatable/datatables.js"></script>
+    <script>
+        $('#zero-config').DataTable({
+            "dom": "<'dt--top-section'<'row'<'col-12 col-sm-6 d-flex justify-content-sm-start justify-content-center'l><'col-12 col-sm-6 d-flex justify-content-sm-end justify-content-center mt-sm-0 mt-3'f>>>" +
+                "<'table-responsive'tr>" +
+                "<'dt--bottom-section d-sm-flex justify-content-sm-between text-center'<'dt--pages-count  mb-sm-0 mb-3'i><'dt--pagination'p>>",
+            "oLanguage": {
+                "oPaginate": {
+                    "sPrevious": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-left"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>',
+                    "sNext": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-right"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>'
+                },
+                "sInfo": "Showing page _PAGE_ of _PAGES_",
+                "sSearch": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
+                "sSearchPlaceholder": "Search...",
+                "sLengthMenu": "Results :  _MENU_",
+            },
+            "stripeClasses": [],
+            "lengthMenu": [7, 10, 20, 50],
+            "pageLength": 10
+        });
+        $('#zero-config2').DataTable({
+            "dom": "<'dt--top-section'<'row'<'col-12 col-sm-6 d-flex justify-content-sm-start justify-content-center'l><'col-12 col-sm-6 d-flex justify-content-sm-end justify-content-center mt-sm-0 mt-3'f>>>" +
+                "<'table-responsive'tr>" +
+                "<'dt--bottom-section d-sm-flex justify-content-sm-between text-center'<'dt--pages-count  mb-sm-0 mb-3'i><'dt--pagination'p>>",
+            "oLanguage": {
+                "oPaginate": {
+                    "sPrevious": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-left"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>',
+                    "sNext": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-right"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>'
+                },
+                "sInfo": "Showing page _PAGE_ of _PAGES_",
+                "sSearch": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
+                "sSearchPlaceholder": "Search...",
+                "sLengthMenu": "Results :  _MENU_",
+            },
+            "stripeClasses": [],
+            "lengthMenu": [7, 10, 20, 50],
+            "pageLength": 10
+        });
+    </script>
 
 </body>
 
