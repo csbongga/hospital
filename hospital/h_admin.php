@@ -1,10 +1,11 @@
 <?php include "conDB.php" ?>
 <?php
-if ($_GET["department"] == "") {
-    $department = "HA";
+if (isset($_GET['department'])) {
+    $department = $_GET['department'];
 } else {
-    $department = $_GET["department"];
+    $department = ''; // กำหนดค่าเริ่มต้น หรือดำเนินการอื่นๆ
 }
+
 // Query for number of employees in each department
 $sql22 = "SELECT department, COUNT(DISTINCT employee_name) AS num_unique_employees FROM employee_data GROUP BY department";
 $result = $conn->query($sql22);
@@ -25,7 +26,7 @@ $sql_emp_time = "SELECT
         FROM 
             employee_data 
         WHERE 
-            status = 'วันทำงาน' AND MONTH(date) = 2 AND YEAR(date) = YEAR(CURDATE()) AND `department` LIKE '%$department%'
+            MONTH(date) = 2 AND YEAR(date) = YEAR(CURDATE()) AND `department` LIKE '$department'
         GROUP BY 
             employee_name  
 ORDER BY `employee_data`.`employee_name` ASC;";
@@ -341,7 +342,13 @@ $conn->close();
                             <div class="widget widget-table-two">
 
                                 <div class="widget-heading">
-                                    <h5 class="">สรุปการเข้างานของ แผนก <?php echo $department ?></h5>
+                                    <h5 class="">
+                                        <?php
+                                        if ($department == "") {
+                                            echo "คุณยังไม่ได้เลือกแผนก";
+                                        } else {
+                                            echo "สรุปการเข้างานของ แผนก " . $department;
+                                        } ?></h5>
                                 </div>
 
                                 <div class="widget-content">
@@ -388,7 +395,7 @@ $conn->close();
                                                         <td><div class='td-content' style='text-align: center;'>" . $row["late_days"] . "</div></td>
                                                         <td><div class='td-content' style='text-align: center;'>" . $row["total_late_time"] . "</div></td>
                                                         <td><div class='td-content' style='text-align: center;'>00:00</div></td>
-                                                        <td><div class='td-content' style='text-align: center;'><a href='h_report_emp_time_work.php?employee_name=" . $row["employee_name"] . ",department=" . $department . "'><span class='badge badge-success'>ดู</span></a></div></td>
+                                                        <td><div class='td-content' style='text-align: center;'><a href='h_report_emp_time_work.php?employee_name=" . $row["employee_name"] . "&department=" . $department . "'><span class='badge badge-success'>ดู</span></a></div></td>
                                                         </tr>";
                                                         $i++;
                                                     }
